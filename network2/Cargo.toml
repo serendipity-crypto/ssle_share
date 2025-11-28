@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1"
-tokio = { workspace = true }
+tokio = { version = "1", features = ["full"] }
 quinn = "0.11"
 rustls = { version = "0.23", default-features = false, features = [
     "logging",
@@ -14,11 +14,11 @@ rustls = { version = "0.23", default-features = false, features = [
     "ring",
 ] }
 rcgen = "0.14"
-futures = "0.3.31"
 parking_lot = "0.12.5"
 
 [dev-dependencies]
 clap = { version = "4.5.53", features = ["derive"] }
-rand = { workspace = true }
-mimalloc = { workspace = true }
+rand = "0.9"
+mimalloc = "0.1.47"
 csv = "1.4"
+quanta = "0.12.6"

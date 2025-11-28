@@ -87,7 +87,7 @@ async fn main() -> anyhow::Result<()> {
 
         tcp_tree.share(&mut data, chunk_size).await?;
 
-        let start_time = std::time::Instant::now();
+        let start_time = quanta::Instant::now();
 
         for _j in 0..ITER_COUNT {
             tcp_tree.share(&mut data, chunk_size).await?;

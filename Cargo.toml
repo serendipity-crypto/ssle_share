@@ -2,6 +2,11 @@
 members = ["network2"]
 resolver = "3"
 
+[workspace.dependencies]
+tokio = { version = "1", features = ["full"] }
+rand = "0.9"
+mimalloc = "0.1.47"
+
 [profile.dev]
 opt-level = 1
 

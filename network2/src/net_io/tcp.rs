@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::sync::Arc;
 
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -6,16 +6,17 @@ use tokio::{
         TcpStream,
         tcp::{OwnedReadHalf, OwnedWriteHalf},
     },
+    sync::Mutex,
 };
 
-use crate::TreeNetIO;
+use crate::{PairWiseNetIO, TreeNetIO};
 
 use super::Role;
 
 pub struct TcpNetIO {
     role: Role,
-    write_half: RefCell<OwnedWriteHalf>,
-    read_half: RefCell<OwnedReadHalf>,
+    write_half: Mutex<OwnedWriteHalf>,
+    read_half: Mutex<OwnedReadHalf>,
 }
 
 impl TcpNetIO {
@@ -23,8 +24,8 @@ impl TcpNetIO {
         let (read_half, write_half) = tcp_stream.into_split();
         Self {
             role,
-            write_half: RefCell::new(write_half),
-            read_half: RefCell::new(read_half),
+            write_half: Mutex::new(write_half),
+            read_half: Mutex::new(read_half),
         }
     }
 
@@ -47,19 +48,33 @@ impl TcpNetIO {
 impl TreeNetIO for TcpNetIO {
     async fn share(&self, data: &[u8], buf: &mut [u8]) -> anyhow::Result<()> {
         let send_task = async {
-            let mut write_half_mut = self.write_half.borrow_mut();
+            let mut write_half_mut = self.write_half.lock().await;
             write_half_mut.write_all(data).await?;
             write_half_mut.flush().await?;
             anyhow::Ok(())
         };
 
         let recv_task = async {
-            self.read_half.borrow_mut().read_exact(buf).await?;
+            self.read_half.lock().await.read_exact(buf).await?;
             anyhow::Ok(())
         };
 
         tokio::try_join!(send_task, recv_task)?;
 
         Ok(())
+    }
+}
+
+impl PairWiseNetIO for TcpNetIO {
+    async fn send(self: Arc<Self>, data: &[u8]) -> anyhow::Result<()> {
+        let mut write_half_mut = self.write_half.lock().await;
+        write_half_mut.write_all(data).await?;
+        write_half_mut.flush().await?;
+        anyhow::Ok(())
+    }
+
+    async fn recv(self: Arc<Self>, data: &mut [u8]) -> anyhow::Result<()> {
+        self.read_half.lock().await.read_exact(data).await?;
+        anyhow::Ok(())
     }
 }
